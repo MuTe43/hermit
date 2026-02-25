@@ -4,7 +4,7 @@ hermit/app.py — Terminal UI (brutalist noir aesthetic)
 import sys
 import os
 import asyncio
-from datetime import datetime
+import threading
 
 from rich.console import Console
 from rich.text import Text
@@ -24,9 +24,12 @@ GREEN     = "#00E676"
 RED       = "#FF3D3D"
 CYAN      = "#00BCD4"
 W         = 56
+POLL_SECS = 8
 
 console = Console(highlight=False, emoji=True, emoji_variant="text")
 
+
+# ── Helpers ───────────────────────────────────────────────────────────────────
 
 def clear():
     os.system("cls" if sys.platform == "win32" else "clear")
@@ -78,6 +81,8 @@ def _is_rtl(text: str) -> bool:
     return rtl > len(text) * 0.3
 
 
+# ── Screens ───────────────────────────────────────────────────────────────────
+
 def screen_conversations(convos, platform_name):
     clear()
     _header(platform_name)
@@ -91,7 +96,7 @@ def screen_conversations(convos, platform_name):
     return Prompt.ask(f"  [{AMBER}]>[/]").strip().lower()
 
 
-def screen_chat(convo, messages, status_msg: str = "", photo_index: dict = {}):
+def screen_chat(convo, messages, status_msg: str = "", photo_index: dict = {}, new_count: int = 0):
     clear()
     _header(convo.name)
 
@@ -105,6 +110,7 @@ def screen_chat(convo, messages, status_msg: str = "", photo_index: dict = {}):
             ts    = msg.timestamp or ""
             label = "you" if msg.is_me else (msg.sender if msg.sender and msg.sender != "?" else "—")
 
+            # Day separator
             date_part = ""
             for word in ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday","Today","Yesterday"]:
                 if word in ts:
@@ -159,11 +165,48 @@ def screen_chat(convo, messages, status_msg: str = "", photo_index: dict = {}):
 
             console.print()
 
+    # Status / new message notification
+    if new_count:
+        console.print(f"  [{GREEN}]↑ {new_count} new message{'s' if new_count > 1 else ''} — press r[/]\n")
     if status_msg:
         console.print(f"  [{RED}]{status_msg}[/]\n")
 
-    _footer(["enter send", "r refresh", "p# view photo", "b back", "q quit"])
+    _footer(["enter send", "r refresh", "p# photo", "b back", "q quit"])
 
+
+# ── Auto-refresh timer ────────────────────────────────────────────────────────
+
+class _RefreshFlag:
+    """Thread-safe flag set by a timer. Main loop checks it after each input."""
+    def __init__(self):
+        self._flag = False
+        self._timer: threading.Timer | None = None
+
+    def start(self, interval: float):
+        self._schedule(interval)
+
+    def _schedule(self, interval: float):
+        self._timer = threading.Timer(interval, self._fire, args=[interval])
+        self._timer.daemon = True
+        self._timer.start()
+
+    def _fire(self, interval: float):
+        self._flag = True
+        self._schedule(interval)  # reschedule
+
+    def check_and_reset(self) -> bool:
+        if self._flag:
+            self._flag = False
+            return True
+        return False
+
+    def stop(self):
+        if self._timer:
+            self._timer.cancel()
+            self._timer = None
+
+
+# ── App ───────────────────────────────────────────────────────────────────────
 
 async def _quit(platforms):
     for p in platforms.values():
@@ -220,10 +263,12 @@ class HermitApp:
             elif choice in ("w", "wa", "whatsapp"):
                 self.current_platform = "whatsapp"
                 platform = self.platforms[self.current_platform]
+                platform._current_convo_id = None
                 convos   = []
             elif choice in ("m", "fb", "messenger"):
                 self.current_platform = "messenger"
                 platform = self.platforms[self.current_platform]
+                platform._current_convo_id = None
                 convos   = []
             elif choice.isdigit():
                 idx = int(choice) - 1
@@ -233,62 +278,83 @@ class HermitApp:
                         await _quit(self.platforms)
 
     async def _chat(self, platform, convo):
-        messages   = []
-        status_msg = ""
+        messages    = []
+        status_msg  = ""
         photo_index = {}
+        new_count   = 0
 
         cleanup_old_media()
 
-        while True:
-            if not messages:
-                clear()
-                _header(convo.name)
-                with console.status(f"[{AMBER}]loading messages...[/]"):
-                    messages = await platform.get_messages(convo.id)
+        # Start auto-refresh timer — fires every POLL_SECS, sets a flag
+        refresh_flag = _RefreshFlag()
+        refresh_flag.start(POLL_SECS)
 
-            photo_index = {}
-            screen_chat(convo, messages, status_msg, photo_index)
-            status_msg = ""
+        try:
+            while True:
+                if not messages:
+                    clear()
+                    _header(convo.name)
+                    with console.status(f"[{AMBER}]loading messages...[/]"):
+                        messages = await platform.get_messages(convo.id)
+                    new_count = 0
 
-            try:
-                user_input = input("  > ").strip()
-            except (KeyboardInterrupt, EOFError):
-                return "back"
+                photo_index = {}
+                screen_chat(convo, messages, status_msg, photo_index, new_count)
+                status_msg = ""
+                new_count  = 0
 
-            cmd = user_input.lower()
+                try:
+                    user_input = input("  > ").strip()
+                except (KeyboardInterrupt, EOFError):
+                    return "back"
 
-            if cmd in ("q", "quit"):
-                clear()
-                console.print(f"\n  [{AMBER_DIM}]goodbye.[/]\n")
-                return "quit"
-            elif cmd in ("b", "back"):
-                return "back"
-            elif cmd in ("r", "refresh"):
-                messages = []
-                continue
-            elif cmd.startswith("p") and cmd[1:].isdigit():
-                num = int(cmd[1:])
-                url = photo_index.get(num)
-                if url:
-                    with console.status(f"[{CYAN}]downloading...[/]"):
-                        path = await download_image(platform._page, url)
-                    if path:
-                        open_file(path)
-                        status_msg = f"opened [p{num}]"
+                # Check auto-refresh flag after input returns
+                if refresh_flag.check_and_reset() or not user_input:
+                    # Silent background refresh
+                    try:
+                        fresh = await platform.get_messages(convo.id)
+                        if len(fresh) > len(messages):
+                            new_count = len(fresh) - len(messages)
+                            messages  = fresh
+                        elif not user_input:
+                            # Empty enter = manual refresh
+                            messages = []
+                    except Exception:
+                        pass
+                    if not user_input:
+                        continue
+
+                cmd = user_input.lower()
+
+                if cmd in ("q", "quit"):
+                    clear()
+                    console.print(f"\n  [{AMBER_DIM}]goodbye.[/]\n")
+                    return "quit"
+                elif cmd in ("b", "back"):
+                    return "back"
+                elif cmd in ("r", "refresh"):
+                    messages = []
+                elif cmd.startswith("p") and cmd[1:].isdigit():
+                    num = int(cmd[1:])
+                    url = photo_index.get(num)
+                    if url:
+                        with console.status(f"[{CYAN}]downloading...[/]"):
+                            path = await download_image(platform._page, url)
+                        if path:
+                            open_file(path)
+                            status_msg = f"opened [p{num}]"
+                        else:
+                            status_msg = f"failed to download [p{num}]"
                     else:
-                        status_msg = f"failed to download [p{num}]"
-                else:
-                    status_msg = f"no [p{num}] in view"
-            elif user_input:
-                with console.status(f"[{AMBER}]sending...[/]"):
-                    ok = await platform.send_message(convo.id, user_input)
-                if ok:
-                    messages.append(Message(
-                        id="local",
-                        sender="you",
-                        text=user_input,
-                        timestamp=datetime.now().strftime("%H:%M"),
-                        is_me=True
-                    ))
-                else:
-                    status_msg = "failed to send — try again"
+                        status_msg = f"no [p{num}] in view"
+                elif user_input:
+                    refresh_flag.check_and_reset()  # clear any pending flag before send
+                    with console.status(f"[{AMBER}]sending...[/]"):
+                        ok = await platform.send_message(convo.id, user_input)
+                    refresh_flag.check_and_reset()  # discard flag that fired during send
+                    if ok:
+                        messages = []  # reload to confirm sent message
+                    else:
+                        status_msg = "failed to send — try again"
+        finally:
+            refresh_flag.stop()

@@ -37,7 +37,6 @@ JS_GET_MESSAGES = (
     "    return [...DAYS, ...MONTHS].some(w => s.startsWith(w));"
     "  };"
     "  const isName = s => s && s.length >= 2 && s.length <= 50 && !isTS(s) && !SKIP.has(s) && !/^(You |This |The |A )/.test(s);"
-    # Collect message bubbles
     "  const msgs = [];"
     "  for (const bubble of document.querySelectorAll('div[dir=\"auto\"]')) {"
     "    let text = (bubble.innerText || '').trim();"
@@ -62,7 +61,6 @@ JS_GET_MESSAGES = (
     "    }"
     "    msgs.push({ text, isMe, x: rect.left, y: rect.top, w: rect.width, h: rect.height });"
     "  }"
-    # Collect labels for sender names and timestamps
     "  const chatLeft = window.innerWidth * 0.25;"
     "  const labels = [];"
     "  for (const el of document.querySelectorAll('span, div')) {"
@@ -73,7 +71,6 @@ JS_GET_MESSAGES = (
     "    if (r.width === 0 || r.height === 0 || r.left < chatLeft) continue;"
     "    labels.push({ text: t, y: r.top });"
     "  }"
-    # Collect images (exclude sidebar, avatars, icons)
     "  const imgMap = [];"
     "  for (const img of document.querySelectorAll('img[src]')) {"
     "    const src = img.getAttribute('src') || '';"
@@ -96,7 +93,6 @@ JS_GET_MESSAGES = (
     "    imgMap.push({ src, isMe, y: img.offsetTop || (r.top + window.scrollY) });"
     "  }"
     "  imgMap.sort((a, b) => a.y - b.y);"
-    # Match labels to messages
     "  const msgTexts = new Set(msgs.map(m => m.text));"
     "  const result = [];"
     "  let lastSender = '';"
@@ -115,7 +111,6 @@ JS_GET_MESSAGES = (
     "    } else { lastSender = ''; }"
     "    result.push({ text: msg.text, isMe: msg.isMe, sender, timestamp, images: [], _y: msg.y + window.scrollY });"
     "  }"
-    # Match images to messages by absolute Y proximity
     "  for (const img of imgMap) {"
     "    let closest = null, minDist = 200;"
     "    for (const r of result) {"
@@ -162,30 +157,54 @@ class MessengerPlatform(Platform):
             return []
         raw = await self._page.evaluate(JS_GET_CONVOS)
         self._current_convo_id = None
-        return [Conversation(id=r["id"], name=r["name"], platform="messenger", last_message=r.get("preview", "")) for r in raw]
+        return [
+            Conversation(id=r["id"], name=r["name"], platform="messenger", last_message=r.get("preview", ""))
+            for r in raw
+        ]
+
+    async def _nav_to_convo(self, convo_id: str):
+        """Navigate to a conversation and wait for it to fully load."""
+        await self._page.goto(
+            f"{MESSENGER_URL}/t/{convo_id}/",
+            wait_until="domcontentloaded",
+            timeout=20000
+        )
+        try:
+            await self._page.wait_for_selector('[role="main"]', timeout=10000)
+        except Exception:
+            pass
+        await asyncio.sleep(1.0)
+        # Scroll to bottom of chat container
+        await self._page.evaluate("""
+            () => {
+                for (const sel of ['[role="main"] [data-virtualized]', '[role="grid"]', '[role="main"]']) {
+                    const el = document.querySelector(sel);
+                    if (el && el.scrollHeight > el.clientHeight) { el.scrollTop = el.scrollHeight; return; }
+                }
+                window.scrollTo(0, document.body.scrollHeight);
+            }
+        """)
+        await asyncio.sleep(0.4)
+        # Pre-focus textbox so first send works immediately
+        try:
+            await self._page.wait_for_selector(
+                'div[contenteditable="true"][role="textbox"]',
+                timeout=5000, state="attached"
+            )
+        except Exception:
+            pass
+        await self._page.evaluate("""
+            () => {
+                const el = document.querySelector('div[contenteditable="true"][role="textbox"]');
+                if (el) el.focus();
+            }
+        """)
+        self._current_convo_id = convo_id
 
     async def get_messages(self, convo_id: str, limit: int = 40) -> list[Message]:
         await self._ensure_page()
         if self._current_convo_id != convo_id:
-            await self._page.goto(f"{MESSENGER_URL}/t/{convo_id}/", wait_until="domcontentloaded", timeout=20000)
-            try:
-                await self._page.wait_for_selector('[role="main"]', timeout=10000)
-            except Exception:
-                pass
-            await asyncio.sleep(1.0)
-            # Scroll to bottom of Messenger's inner chat container
-            await self._page.evaluate("""
-                () => {
-                    for (const sel of ['[role="main"] [data-virtualized]', '[role="grid"]', '[role="main"]']) {
-                        const el = document.querySelector(sel);
-                        if (el && el.scrollHeight > el.clientHeight) { el.scrollTop = el.scrollHeight; break; }
-                    }
-                    window.scrollTo(0, document.body.scrollHeight);
-                }
-            """)
-            await asyncio.sleep(0.5)
-            self._current_convo_id = convo_id
-
+            await self._nav_to_convo(convo_id)
         raw = await self._page.evaluate(JS_GET_MESSAGES, limit)
         return [
             Message(
@@ -202,41 +221,15 @@ class MessengerPlatform(Platform):
     async def send_message(self, convo_id: str, text: str) -> bool:
         await self._ensure_page()
         if self._current_convo_id != convo_id:
-            await self._page.goto(f"{MESSENGER_URL}/t/{convo_id}/", wait_until="domcontentloaded", timeout=20000)
-            try:
-                await self._page.wait_for_selector('div[contenteditable="true"]', timeout=8000)
-            except Exception:
-                return False
-            self._current_convo_id = convo_id
-
+            await self._nav_to_convo(convo_id)
         try:
-            sent = await self._page.evaluate("""
-                (msg) => {
-                    const el = document.querySelector('div[contenteditable="true"][role="textbox"]')
-                            || document.querySelector('div[contenteditable="true"]');
-                    if (!el) return false;
-                    el.focus();
-                    document.execCommand('insertText', false, msg);
-                    // Dispatch input event so React recognises the change
-                    el.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: msg }));
-                    return el.innerText.trim().length > 0;
-                }
-            """, text)
-            if not sent:
-                return False
+            await self._page.evaluate(
+                '([s, t]) => { const el = document.querySelector(s); if (!el) return; el.focus(); document.execCommand("insertText", false, t); }',
+                ['div[contenteditable="true"][role="textbox"]', text]
+            )
             await asyncio.sleep(0.15)
-            # Press Enter via JS to avoid needing OS-level focus
-            await self._page.evaluate("""
-                () => {
-                    const el = document.querySelector('div[contenteditable="true"][role="textbox"]')
-                            || document.querySelector('div[contenteditable="true"]');
-                    if (!el) return;
-                    el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, bubbles: true }));
-                    el.dispatchEvent(new KeyboardEvent('keypress', { key: 'Enter', code: 'Enter', keyCode: 13, bubbles: true }));
-                    el.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter', code: 'Enter', keyCode: 13, bubbles: true }));
-                }
-            """)
-            await asyncio.sleep(0.4)
+            await self._page.keyboard.press("Enter")
+            await asyncio.sleep(0.5)
             return True
         except Exception:
             return False
