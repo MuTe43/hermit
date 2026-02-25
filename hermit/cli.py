@@ -16,10 +16,15 @@ from hermit.store import SessionStore
 
 
 def run():
-    # Fix Windows encoding
+    # Fix Windows encoding + emoji support
     if sys.platform == "win32":
-        sys.stdout.reconfigure(encoding="utf-8")
-        sys.stderr.reconfigure(encoding="utf-8")
+        import os
+        os.system("chcp 65001 >nul 2>&1")  # UTF-8 code page
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    # Force Python UTF-8 mode
+    import os
+    os.environ.setdefault("PYTHONUTF8", "1")
 
     args = sys.argv[1:]
 
