@@ -10,7 +10,7 @@ readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
 authors = [
-    { name = "MuTe43", email = "" },
+    { name = "MuTe43" },
 ]
 keywords = [
     "messenger", "whatsapp", "facebook-messenger", "terminal", "cli", "tui",
