@@ -5,14 +5,22 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "hermit-msg"
 version = "0.1.0"
-description = "Distraction-free terminal client for Messenger & WhatsApp"
+description = "Distraction-free terminal client for Facebook Messenger & WhatsApp — privacy-first TUI, no feeds, no algorithms"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
-keywords = ["messenger", "whatsapp", "terminal", "cli", "tui", "distraction-free", "privacy"]
+authors = [
+    { name = "MuTe43", email = "" },
+]
+keywords = [
+    "messenger", "whatsapp", "facebook-messenger", "terminal", "cli", "tui",
+    "distraction-free", "privacy", "privacy-first", "chat", "messaging",
+    "headless-browser", "playwright", "digital-minimalism", "terminal-client",
+]
 classifiers = [
     "Environment :: Console",
     "Topic :: Communications :: Chat",
+    "Intended Audience :: End Users/Desktop",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -29,7 +37,9 @@ hermit = "hermit.cli:run"
 
 [project.urls]
 Homepage = "https://github.com/MuTe43/hermit"
+Documentation = "https://github.com/MuTe43/hermit#readme"
 Issues = "https://github.com/MuTe43/hermit/issues"
+Changelog = "https://github.com/MuTe43/hermit/releases"
 
 [project.optional-dependencies]
 dev = ["pytest>=7.0", "ruff>=0.1.0"]
