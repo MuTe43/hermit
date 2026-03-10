@@ -3,9 +3,9 @@
 ## Setup
 
 ```bash
-git clone https://github.com/yourusername/hermit
+git clone https://github.com/MuTe43/hermit
 cd hermit
-pip install -e .
+pip install -e ".[dev]"
 playwright install chromium
 ```
 
@@ -33,6 +33,13 @@ async def debug():
         await browser.close()
 
 asyncio.run(debug())
+```
+
+## Running tests
+
+```bash
+pytest tests/ -v
+ruff check hermit/
 ```
 
 ## What needs help

@@ -7,3 +7,11 @@ build/
 venv/
 .DS_Store
 hermit_debug*.png
+.ruff_cache/
+.pytest_cache/
+htmlcov/
+*.resolved
+task.md*
+implementation_plan.md*
+image.png
+.claude/

@@ -1,30 +1,44 @@
 # hermit
 
+[![PyPI](https://img.shields.io/pypi/v/hermit-msg?color=%23FFB300&label=PyPI)](https://pypi.org/project/hermit-msg/)
+[![Python](https://img.shields.io/pypi/pyversions/hermit-msg?color=%2300E676)](https://pypi.org/project/hermit-msg/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![CI](https://github.com/MuTe43/hermit/actions/workflows/ci.yml/badge.svg)](https://github.com/MuTe43/hermit/actions)
+
 **messaging without the noise.**
 
-A terminal client for Facebook Messenger and WhatsApp.  
-No feeds. No algorithms. No suggested posts. Just the people you actually want to talk to.
+<p align="center">
+  <img src="assets/demo.png" alt="hermit terminal UI" width="700">
+</p>
 
-```
-+-------------------------------------------------------+
-|  hermit  messenger                                    |
-+-------+-----------------------------------------------+
-|  #    |  Name              Last message          New  |
-|  1    |  Alice             sounds good, see you       |
-|  2    |  Bob               can you send that file?    |
-|  3    |  Work Group        meeting moved to 3pm    5  |
-|  4    |  Mom               call me when you can       |
-+-------+-----------------------------------------------+
-  # = open  |  r = refresh  |  w = switch to WhatsApp  |  q = quit
-  >
-```
+A terminal client for Facebook Messenger and WhatsApp.
+No feeds. No algorithms. No suggested posts. Just the people you actually want to talk to.
 
 ## why
 
-Every time you open Messenger in a browser you get a news feed, stories,  
+Every time you open Messenger in a browser you get a news feed, stories,
 reels, and notification badges engineered to keep you scrolling.
 
 hermit gives you **only messages**. Open it, reply, close it. That's it.
+
+## features
+
+- **Distraction-free** — no feeds, no stories, no reels, just conversations
+- **Multi-platform** — Messenger and WhatsApp in one terminal
+- **Privacy-first** — nothing leaves your machine, no backend, no cloud
+- **Persistent sessions** — log in once, stay logged in
+- **Lightweight** — runs a headless browser behind the scenes, shows you a clean TUI
+- **Extensible** — add new platforms with a simple Python class
+
+## supported platforms
+
+| Platform | Status |
+|----------|--------|
+| Facebook Messenger | ✅ Supported |
+| WhatsApp | ✅ Supported |
+| Instagram DMs | 🔜 Planned |
+| Telegram | 🔜 Planned |
+| iMessage (macOS) | 🔜 Planned |
 
 ## install
 
@@ -68,8 +82,8 @@ hermit version      # show version
 
 ## how it works
 
-hermit runs a headless Chromium browser in the background via [Playwright](https://playwright.dev/).  
-It logs in once, saves your session to `~/.hermit/`, and scrapes the messaging interface —  
+hermit runs a headless Chromium browser in the background via [Playwright](https://playwright.dev/).
+It logs in once, saves your session to `~/.hermit/`, and scrapes the messaging interface —
 giving you a clean terminal UI with none of the surrounding noise.
 
 **Nothing leaves your machine.** No backend, no cloud, no accounts.
@@ -96,13 +110,15 @@ class MyPlatform(Platform):
 
 Then register it in `hermit/app.py`. PRs welcome.
 
-**Roadmap:**
+## roadmap
+
 - [ ] Instagram DMs
-- [ ] Telegram (via official API — no scraping)
+- [ ] Telegram (via official API — no scraping needed)
 - [ ] iMessage (macOS, via AppleScript)
 - [ ] Unread count badges
 - [ ] Desktop notifications for new messages
 - [ ] Image previews
+- [ ] Group chat management
 
 ## caveats
 
@@ -122,3 +138,5 @@ MIT
 ---
 
 *built because opening Messenger to reply to one message and losing 45 minutes is not acceptable.*
+
+If hermit saved you from doomscrolling, consider giving it a ⭐

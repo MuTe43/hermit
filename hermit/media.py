@@ -4,7 +4,6 @@ hermit/media.py — Download and open media attachments
 from __future__ import annotations
 import os
 import sys
-import asyncio
 import tempfile
 import hashlib
 from pathlib import Path
@@ -38,7 +37,7 @@ async def download_image(page, url: str) -> Path | None:
                     return dest
         finally:
             await new_page.close()
-    except Exception as e:
+    except Exception:
         pass
 
     return None

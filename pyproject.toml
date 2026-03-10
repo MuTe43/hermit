@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hermit-msg"
+version = "0.1.0"
+description = "Distraction-free terminal client for Messenger & WhatsApp"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+keywords = ["messenger", "whatsapp", "terminal", "cli", "tui", "distraction-free", "privacy"]
+classifiers = [
+    "Environment :: Console",
+    "Topic :: Communications :: Chat",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "playwright>=1.40.0",
+    "rich>=13.0.0",
+    "wcwidth>=0.2.0",
+]
+
+[project.scripts]
+hermit = "hermit.cli:run"
+
+[project.urls]
+Homepage = "https://github.com/MuTe43/hermit"
+Issues = "https://github.com/MuTe43/hermit/issues"
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0", "ruff>=0.1.0"]
+
+[tool.setuptools.packages.find]
+include = ["hermit*"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

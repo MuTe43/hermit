@@ -13,7 +13,6 @@ from rich.prompt import Prompt
 from hermit.store import SessionStore
 from hermit.platforms.messenger import MessengerPlatform
 from hermit.platforms.whatsapp import WhatsAppPlatform
-from hermit.platforms.base import Message
 from hermit.media import download_image, open_file, cleanup_old_media
 
 AMBER     = "#FFB300"
