@@ -1,4 +1,4 @@
-# 🐚 hermit — distraction-free terminal messenger
+# hermit — distraction-free terminal messenger
 
 [![PyPI](https://img.shields.io/pypi/v/hermit-msg?color=%23FFB300&label=PyPI)](https://pypi.org/project/hermit-msg/)
 [![Python](https://img.shields.io/pypi/pyversions/hermit-msg?color=%2300E676)](https://pypi.org/project/hermit-msg/)
@@ -16,7 +16,7 @@ No feeds. No algorithms. No suggested posts. Just the people you actually want t
 
 ---
 
-## 🤔 Why hermit?
+## Why hermit?
 
 Every time you open Messenger in a browser you get a news feed, stories,
 reels, and notification badges engineered to keep you scrolling.
@@ -25,26 +25,26 @@ reels, and notification badges engineered to keep you scrolling.
 **only your messages** — no distractions, no tracking, no dark patterns. Built for people who practice
 [digital minimalism](https://en.wikipedia.org/wiki/Digital_minimalism) or just want their time back.
 
-## ✨ Features
+## Features
 
-- 🚫 **Distraction-free** — no feeds, no stories, no reels, just conversations
-- 📱 **Multi-platform** — Facebook Messenger and WhatsApp in one terminal
-- 🔒 **Privacy-first** — nothing leaves your machine, no backend, no cloud, no data collection
-- 🔑 **Persistent sessions** — log in once, stay logged in
-- ⚡ **Lightweight** — headless browser under the hood, clean TUI on top
-- 🧩 **Extensible** — add new platforms with a simple Python class
+- **Distraction-free** — no feeds, no stories, no reels, just conversations
+- **Multi-platform** — Facebook Messenger and WhatsApp in one terminal
+- **Privacy-first** — nothing leaves your machine, no backend, no cloud, no data collection
+- **Persistent sessions** — log in once, stay logged in
+- **Lightweight** — headless browser under the hood, clean TUI on top
+- **Extensible** — add new platforms with a simple Python class
 
-## 📋 Supported platforms
+## Supported platforms
 
 | Platform | Status |
 |----------|--------|
-| Facebook Messenger | ✅ Supported |
-| WhatsApp | ✅ Supported |
-| Instagram DMs | 🔜 Planned |
-| Telegram | 🔜 Planned |
-| iMessage (macOS) | 🔜 Planned |
+| Facebook Messenger | Supported |
+| WhatsApp | Supported |
+| Instagram DMs | Planned |
+| Telegram | Planned |
+| iMessage (macOS) | Planned |
 
-## 📦 Install
+## Install
 
 ```bash
 pip install hermit-msg
@@ -53,7 +53,7 @@ playwright install chromium
 
 > **Requirements:** Python 3.10+ • Works on Windows, macOS, and Linux
 
-## 🚀 Quick start
+## Quick start
 
 ### First time setup
 
@@ -88,7 +88,7 @@ hermit version      # show version
 | `b` | Back to conversation list |
 | `q` | Quit |
 
-## ⚙️ How it works
+## How it works
 
 hermit runs a headless Chromium browser in the background via [Playwright](https://playwright.dev/).
 It logs in once, saves your session to `~/.hermit/`, and scrapes the messaging interface —
@@ -103,7 +103,7 @@ giving you a clean terminal UI with none of the surrounding noise.
                                                                  └─────────────────┘
 ```
 
-## 🧩 Adding platforms
+## Adding platforms
 
 Each platform is a simple Python class. Implement 4 methods:
 
@@ -121,7 +121,7 @@ class MyPlatform(Platform):
 
 Then register it in `hermit/app.py`. PRs welcome!
 
-## 🗺️ Roadmap
+## Roadmap
 
 - [ ] Instagram DMs
 - [ ] Telegram (via official API — no scraping needed)
@@ -131,18 +131,18 @@ Then register it in `hermit/app.py`. PRs welcome!
 - [ ] Image previews
 - [ ] Group chat management
 
-## ⚠️ Caveats
+## Caveats
 
 - Uses browser automation — against Messenger/WhatsApp ToS
 - May break when platforms update their UI (open an issue if so)
 - WhatsApp requires your phone to stay connected to the internet
 - Facebook may occasionally ask you to re-login
 
-## 🤝 Contributing
+## Contributing
 
 Bug fixes and new platform adapters very welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## 📄 License
+## License
 
 MIT
 
@@ -151,5 +151,5 @@ MIT
 <p align="center">
 <i>Built because opening Messenger to reply to one message and losing 45 minutes is not acceptable.</i>
 <br><br>
-If hermit saved you from doomscrolling, consider giving it a ⭐
+If hermit saved you from doomscrolling, consider giving it a star
 </p>
